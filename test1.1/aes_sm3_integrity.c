@@ -621,32 +621,8 @@ static void sha256_compress(uint32_t* state, const uint8_t* block) {
     vst1q_u32(&state[4], STATE1);
 }
 #else
-// 软件实现版本（回退）
-static void sha256_compress(uint32_t* state, const uint8_t* block) {
-    uint32_t W[64];
-    uint32_t a, b, c, d, e, f, g, h;
-    
-    for (int i = 0; i < 16; i++) {
-        W[i] = __builtin_bswap32(((uint32_t*)block)[i]);
-    }
-    
-    for (int i = 16; i < 64; i++) {
-        W[i] = gamma1(W[i-2]) + W[i-7] + gamma0(W[i-15]) + W[i-16];
-    }
-    
-    a = state[0]; b = state[1]; c = state[2]; d = state[3];
-    e = state[4]; f = state[5]; g = state[6]; h = state[7];
-    
-    for (int i = 0; i < 64; i++) {
-        uint32_t T1 = h + sigma1(e) + ch(e, f, g) + SHA256_K[i] + W[i];
-        uint32_t T2 = sigma0(a) + maj(a, b, c);
-        h = g; g = f; f = e; e = d + T1;
-        d = c; c = b; b = a; a = T1 + T2;
-    }
-    
-    state[0] += a; state[1] += b; state[2] += c; state[3] += d;
-    state[4] += e; state[5] += f; state[6] += g; state[7] += h;
-}
+// 如果不支持SHA2硬件指令，编译时报错
+#error "SHA2硬件加速不可用！请使用 -march=armv8.2-a+crypto+sha2 编译选项，或在支持SHA2指令的ARM平台上编译。"
 #endif
 
 void sha256_4kb(const uint8_t* input, uint8_t* output) {
