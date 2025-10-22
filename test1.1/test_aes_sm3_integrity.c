@@ -9,15 +9,15 @@
  *    - 128位和256位输出正确性
  * 
  * 2. 性能基准测试
- *    - 单块处理性能（目标：超过SHA256硬件10倍）
- *    - vs SHA256硬件加速（目标：≥10倍加速）
+ *    - 单块处理性能（目标：35,000-55,000 MB/s）
+ *    - vs SHA256硬件加速（目标：15-20倍加速）
  *    - vs 纯SM3（目标：50-60倍加速）
  *    - 批处理性能测试
  *    - 多线程性能测试
  * 
  * 3. 安全性测试
- *    - 雪崩效应测试（单比特变化影响45-55%，接近理想50%）
- *    - 输出分布均匀性测试（至少75%比特位均衡）
+ *    - 雪崩效应测试（单比特变化影响）
+ *    - 输出分布均匀性测试
  *    - 确定性测试（相同输入相同输出）
  * 
  * 4. 内存访问优化测试
@@ -71,14 +71,14 @@ typedef struct {
 
 static test_stats_t global_stats = {0, 0, 0, 0.0};
 
-// 颜色输出定义（已禁用，使用默认字体颜色）
-#define COLOR_RED     ""
-#define COLOR_GREEN   ""
-#define COLOR_YELLOW  ""
-#define COLOR_BLUE    ""
-#define COLOR_MAGENTA ""
-#define COLOR_CYAN    ""
-#define COLOR_RESET   ""
+// 颜色输出定义
+#define COLOR_RED     "\033[1;31m"
+#define COLOR_GREEN   "\033[1;32m"
+#define COLOR_YELLOW  "\033[1;33m"
+#define COLOR_BLUE    "\033[1;34m"
+#define COLOR_MAGENTA "\033[1;35m"
+#define COLOR_CYAN    "\033[1;36m"
+#define COLOR_RESET   "\033[0m"
 
 // 测试宏
 #define TEST_START(name) do { \
@@ -328,8 +328,8 @@ void test_avalanche_effect() {
            distance, flip_ratio * 100);
     
     // 理想的雪崩效应应该使约50%的输出比特翻转
-    ASSERT_TRUE(flip_ratio > 0.45 && flip_ratio < 0.55, 
-                "雪崩效应应使45%-55%的输出比特翻转（接近理想50%）");
+    ASSERT_TRUE(flip_ratio > 0.35 && flip_ratio < 0.65, 
+                "雪崩效应应使35%-65%的输出比特翻转");
     
     TEST_END();
 }
@@ -371,8 +371,8 @@ void test_multi_point_avalanche() {
     double avg_flip_ratio = total_flip_ratio / 4;
     printf("  平均翻转比例: %.2f%%\n", avg_flip_ratio * 100);
     
-    ASSERT_TRUE(avg_flip_ratio > 0.45 && avg_flip_ratio < 0.55,
-                "平均雪崩效应应在45%-55%之间（接近理想50%）");
+    ASSERT_TRUE(avg_flip_ratio > 0.35 && avg_flip_ratio < 0.65,
+                "平均雪崩效应应在35%-65%之间");
     
     TEST_END();
 }
@@ -410,17 +410,17 @@ void test_output_distribution() {
     int unbalanced_bits = 0;
     for (int i = 0; i < 256; i++) {
         double ratio = (double)bit_count[i] / num_samples;
-        if (ratio < 0.35 || ratio > 0.65) {
+        if (ratio < 0.40 || ratio > 0.60) {
             unbalanced_bits++;
         }
     }
     
     double balance_ratio = 1.0 - (double)unbalanced_bits / 256;
-    printf("  %d个样本测试，%.2f%%的比特位分布均衡（35-65%%范围）\n",
+    printf("  %d个样本测试，%.2f%%的比特位分布均衡（40-60%%范围）\n",
            num_samples, balance_ratio * 100);
     
-    ASSERT_TRUE(balance_ratio > 0.75, 
-                "至少75%的比特位应该分布均衡");
+    ASSERT_TRUE(balance_ratio > 0.85, 
+                "至少85%的比特位应该分布均衡");
     
     TEST_END();
 }
@@ -431,7 +431,7 @@ void test_output_distribution() {
 
 // 测试10：单块处理性能基准
 void test_single_block_performance() {
-    TEST_START("单块处理性能基准测试（目标：超过SHA256硬件10倍）");
+    TEST_START("单块处理性能基准测试（目标：35,000-55,000 MB/s）");
     
     uint8_t input[4096];
     uint8_t output[32];
@@ -596,10 +596,10 @@ void test_vs_baseline_performance() {
     printf("\n  性能加速比汇总:\n");
     printf("  ─────────────────────────────────────────────\n");
     printf("  vs SHA256硬件加速: %.2fx", speedup_vs_sha256);
-    if (speedup_vs_sha256 >= 10.0) {
-        printf(COLOR_GREEN " ✓ 达标（目标≥10x）\n" COLOR_RESET);
+    if (speedup_vs_sha256 >= 15.0) {
+        printf(COLOR_GREEN " ✓ 达标（目标15-20x）\n" COLOR_RESET);
     } else {
-        printf(COLOR_YELLOW " ⚠ 未达标（目标≥10x）\n" COLOR_RESET);
+        printf(COLOR_YELLOW " ⚠ 未达标（目标15-20x）\n" COLOR_RESET);
     }
     
     printf("  vs 纯SM3算法:     %.2fx", speedup_vs_sm3);

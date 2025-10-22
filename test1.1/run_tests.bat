@@ -35,7 +35,7 @@ set COMPILE_FLAGS=-O3 -funroll-loops -ftree-vectorize -finline-functions -pthrea
 echo 编译测试程序...
 echo 编译选项: %COMPILE_FLAGS%
 
-gcc %COMPILE_FLAGS% -o test_aes_sm3.exe aes_sm3_integrity_v2.3_opt.c test_aes_sm3_integrity.c -lm 2>compile_error.log
+gcc %COMPILE_FLAGS% -o test_aes_sm3.exe aes_sm3_integrity.c test_aes_sm3_integrity.c -lm 2>compile_error.log
 
 if %errorlevel% equ 0 (
     echo [+] 编译成功！

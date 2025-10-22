@@ -82,13 +82,13 @@ echo "编译测试程序..."
 echo "编译选项: $COMPILE_FLAGS"
 
 # 尝试编译
-if gcc $COMPILE_FLAGS -o test_aes_sm3 aes_sm3_integrity_v2.3_opt.c test_aes_sm3_integrity.c -lm 2>compile_error.log; then
+if gcc $COMPILE_FLAGS -o test_aes_sm3 aes_sm3_integrity.c test_aes_sm3_integrity.c -lm 2>compile_error.log; then
     echo -e "${GREEN}✓${NC} 编译成功！"
     rm -f compile_error.log
 else
     echo -e "${YELLOW}⚠${NC} 使用默认编译选项失败，尝试备选方案..."
     
-    if gcc $FALLBACK_FLAGS -o test_aes_sm3 aes_sm3_integrity_v2.3_opt.c test_aes_sm3_integrity.c -lm 2>compile_error.log; then
+    if gcc $FALLBACK_FLAGS -o test_aes_sm3 aes_sm3_integrity.c test_aes_sm3_integrity.c -lm 2>compile_error.log; then
         echo -e "${GREEN}✓${NC} 使用备选编译选项成功！"
         rm -f compile_error.log
     else

@@ -2,11 +2,6 @@
 // v2.3 内存访问优化 - 超级预取策略
 // ============================================================================
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <arm_neon.h>
-
 // 超级预取优化版本 - 使用非时间临时加载和更激进的预取策略
 void aes_sm3_integrity_batch_super_prefetch(const uint8_t** inputs, uint8_t** outputs, int batch_size) {
     // 分配临时存储空间（批处理版本）- 使用更大的对齐粒度
