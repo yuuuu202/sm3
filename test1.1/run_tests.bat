@@ -34,14 +34,32 @@ set COMPILE_FLAGS=-O3 -funroll-loops -ftree-vectorize -finline-functions -pthrea
 
 echo 编译测试程序...
 echo 编译选项: %COMPILE_FLAGS%
+echo.
 
-gcc %COMPILE_FLAGS% -o test_aes_sm3.exe aes_sm3_integrity.c test_aes_sm3_integrity.c -lm 2>compile_error.log
+echo 步骤1: 编译主算法文件为目标文件...
+gcc %COMPILE_FLAGS% -c aes_sm3_integrity.c -o aes_sm3_integrity.o -lm 2>compile_error.log
 
 if %errorlevel% equ 0 (
-    echo [+] 编译成功！
+    echo [+] 主算法文件编译成功！
     del compile_error.log 2>nul
 ) else (
     echo [-] 编译失败！
+    echo.
+    echo 错误信息:
+    type compile_error.log
+    del compile_error.log 2>nul
+    exit /b 1
+)
+
+echo.
+echo 步骤2: 编译测试文件并链接...
+gcc %COMPILE_FLAGS% -o test_aes_sm3.exe aes_sm3_integrity.o test_aes_sm3_integrity.c -lm 2>compile_error.log
+
+if %errorlevel% equ 0 (
+    echo [+] 测试程序链接成功！
+    del compile_error.log 2>nul
+) else (
+    echo [-] 链接失败！
     echo.
     echo 错误信息:
     type compile_error.log
