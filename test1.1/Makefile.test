@@ -1,0 +1,171 @@
+# AES-SM3完整性校验算法测试套件 Makefile
+#
+# 用法:
+#   make -f Makefile.test          # 编译测试程序
+#   make -f Makefile.test test     # 编译并运行测试
+#   make -f Makefile.test quick    # 快速测试
+#   make -f Makefile.test clean    # 清理编译产物
+#   make -f Makefile.test help     # 显示帮助
+
+# 编译器设置
+CC = gcc
+CFLAGS = -O3 -funroll-loops -ftree-vectorize -finline-functions -pthread
+LDFLAGS = -lm
+
+# ARM平台优化选项
+ifeq ($(shell uname -m),aarch64)
+	ARCH_FLAGS = -march=armv8.2-a+crypto
+	CFLAGS += $(ARCH_FLAGS) -ffast-math -flto -fomit-frame-pointer
+else ifeq ($(shell uname -m),arm)
+	ARCH_FLAGS = -march=armv8-a+crypto
+	CFLAGS += $(ARCH_FLAGS) -ffast-math -flto -fomit-frame-pointer
+else
+	# x86或其他平台
+	ARCH_FLAGS = 
+	CFLAGS += -msse4.2
+endif
+
+# 源文件和目标文件
+SOURCES = aes_sm3_integrity.c test_aes_sm3_integrity.c
+TARGET = test_aes_sm3
+
+# 颜色定义（用于美化输出）
+RED = \033[0;31m
+GREEN = \033[0;32m
+YELLOW = \033[1;33m
+BLUE = \033[0;34m
+NC = \033[0m # No Color
+
+# 默认目标
+.PHONY: all
+all: $(TARGET)
+	@echo "$(GREEN)✓ 编译完成！$(NC)"
+	@echo "运行测试: make -f Makefile.test test"
+	@echo "快速测试: make -f Makefile.test quick"
+
+# 编译测试程序
+$(TARGET): $(SOURCES)
+	@echo "$(BLUE)编译测试程序...$(NC)"
+	@echo "编译器: $(CC)"
+	@echo "优化选项: $(CFLAGS)"
+	@echo "架构标志: $(ARCH_FLAGS)"
+	@$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LDFLAGS)
+
+# 运行完整测试
+.PHONY: test
+test: $(TARGET)
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)  运行完整测试套件$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@./$(TARGET)
+
+# 快速测试
+.PHONY: quick
+quick: $(TARGET)
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)  运行快速测试（2分钟超时）$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@timeout 120 ./$(TARGET) || { \
+		if [ $$? -eq 124 ]; then \
+			echo "$(YELLOW)测试超时（2分钟）$(NC)"; \
+		fi; \
+		exit 1; \
+	}
+
+# 性能测试（只运行性能相关测试）
+.PHONY: perf
+perf: $(TARGET)
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)  运行性能测试$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@./$(TARGET) 2>&1 | grep -A 50 "性能基准测试"
+
+# 安全性测试
+.PHONY: security
+security: $(TARGET)
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)  运行安全性测试$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@./$(TARGET) 2>&1 | grep -A 50 "安全性测试"
+
+# 检查编译环境
+.PHONY: check
+check:
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)  检查编译环境$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@echo "CPU架构: $$(uname -m)"
+	@echo "操作系统: $$(uname -s)"
+	@echo "编译器版本:"
+	@$(CC) --version | head -n1
+	@echo ""
+	@if [ -f /proc/cpuinfo ]; then \
+		echo "CPU特性:"; \
+		grep "Features" /proc/cpuinfo | head -n1 | cut -d: -f2; \
+		echo ""; \
+		echo "CPU型号:"; \
+		grep "model name" /proc/cpuinfo | head -n1 | cut -d: -f2 || \
+		grep "CPU implementer" /proc/cpuinfo | head -n1; \
+		echo ""; \
+		echo "CPU核心数: $$(grep -c processor /proc/cpuinfo)"; \
+	fi
+
+# 清理
+.PHONY: clean
+clean:
+	@echo "$(YELLOW)清理编译产物...$(NC)"
+	@rm -f $(TARGET)
+	@rm -f *.o
+	@rm -f compile_error.log
+	@echo "$(GREEN)✓ 清理完成$(NC)"
+
+# 重新编译
+.PHONY: rebuild
+rebuild: clean all
+
+# 安装（将测试程序复制到指定目录）
+.PHONY: install
+install: $(TARGET)
+	@echo "$(BLUE)安装测试程序到 /usr/local/bin ...$(NC)"
+	@sudo cp $(TARGET) /usr/local/bin/
+	@echo "$(GREEN)✓ 安装完成$(NC)"
+	@echo "可以直接运行: $(TARGET)"
+
+# 卸载
+.PHONY: uninstall
+uninstall:
+	@echo "$(YELLOW)卸载测试程序...$(NC)"
+	@sudo rm -f /usr/local/bin/$(TARGET)
+	@echo "$(GREEN)✓ 卸载完成$(NC)"
+
+# 显示帮助
+.PHONY: help
+help:
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)  AES-SM3完整性校验算法测试套件 - Makefile帮助$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════════════════════$(NC)"
+	@echo ""
+	@echo "可用目标:"
+	@echo "  make -f Makefile.test              编译测试程序"
+	@echo "  make -f Makefile.test test         编译并运行完整测试"
+	@echo "  make -f Makefile.test quick        快速测试（2分钟超时）"
+	@echo "  make -f Makefile.test perf         只运行性能测试"
+	@echo "  make -f Makefile.test security     只运行安全性测试"
+	@echo "  make -f Makefile.test check        检查编译环境"
+	@echo "  make -f Makefile.test clean        清理编译产物"
+	@echo "  make -f Makefile.test rebuild      重新编译"
+	@echo "  make -f Makefile.test install      安装到系统"
+	@echo "  make -f Makefile.test uninstall    从系统卸载"
+	@echo "  make -f Makefile.test help         显示此帮助"
+	@echo ""
+	@echo "环境变量:"
+	@echo "  CC         编译器（默认: gcc）"
+	@echo "  CFLAGS     编译选项"
+	@echo ""
+	@echo "示例:"
+	@echo "  make -f Makefile.test CC=clang test  # 使用clang编译并测试"
+	@echo ""
+
+# 防止Make将这些目标当作文件
+.PHONY: all test quick perf security check clean rebuild install uninstall help
+
