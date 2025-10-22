@@ -4,7 +4,9 @@
 
 ### 错误 1: Multiple definition of `main`
 
-**错误信息：**
+**错误信息（两种形式）：**
+
+**形式 A：常规错误**
 ```
 /usr/bin/ld: /tmp/ccXwBiBA.o: in function `main':
 test_aes_sm3_integrity.c:(.text.startup+0x0): multiple definition of `main'; 
@@ -12,11 +14,20 @@ test_aes_sm3_integrity.c:(.text.startup+0x0): multiple definition of `main';
 collect2: error: ld returned 1 exit status
 ```
 
+**形式 B：LTO（链接时优化）错误**
+```
+/usr/bin/ld: /tmp/ccjVMrOW.o (symbol from plugin): in function `print_hash':
+(.text+0x0): multiple definition of `main'; aes_sm3_integrity.o (symbol from plugin):(.text+0x0): first defined here
+collect2: error: ld returned 1 exit status
+```
+> 如果看到 `(symbol from plugin)` 字样，说明是 `-flto` 选项导致的。
+
 **原因：**
 - `aes_sm3_integrity.c` 和 `test_aes_sm3_integrity.c` 两个文件都有 `main` 函数
 - 直接同时编译这两个文件会导致链接器冲突
+- 使用 `-flto`（链接时优化）会产生额外的符号冲突
 
-**✅ 解决方案：分步编译**
+**✅ 解决方案：分步编译 + 移除 -flto**
 
 #### Linux/Unix 平台
 
@@ -74,14 +85,14 @@ run_tests.bat
 #### A. ARMv8.2-A 平台（最佳性能）
 
 ```bash
-# 步骤1: 编译主算法文件
+# 步骤1: 编译主算法文件（注意：不使用 -flto，避免 LTO 导致的符号冲突）
 gcc -march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize \
-    -finline-functions -ffast-math -flto -fomit-frame-pointer -pthread \
-    -c aes_sm3_integrity.c -o aes_sm3_integrity.o -lm
+    -finline-functions -ffast-math -fomit-frame-pointer -pthread \
+    -c aes_sm3_integrity.c -o aes_sm3_integrity.o
 
 # 步骤2: 编译测试文件并链接
 gcc -march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize \
-    -finline-functions -ffast-math -flto -fomit-frame-pointer -pthread \
+    -finline-functions -ffast-math -fomit-frame-pointer -pthread \
     -o test_aes_sm3 aes_sm3_integrity.o test_aes_sm3_integrity.c -lm
 
 # 运行测试
@@ -134,6 +145,35 @@ gcc -O3 -funroll-loops -ftree-vectorize -finline-functions -pthread ^
 REM 运行测试
 test_aes_sm3.exe
 ```
+
+---
+
+---
+
+### 错误 1b: LTO 导致的符号冲突
+
+**错误信息特征：**
+```
+(symbol from plugin): multiple definition of `main'
+```
+
+**原因：**
+`-flto`（Link Time Optimization，链接时优化）在处理包含多个 `main` 函数的项目时会产生符号冲突。
+
+**✅ 解决方案：移除 -flto 选项**
+
+```bash
+# ❌ 错误：使用 -flto
+gcc -O3 -flto -c aes_sm3_integrity.c -o aes_sm3_integrity.o
+
+# ✅ 正确：移除 -flto
+gcc -O3 -c aes_sm3_integrity.c -o aes_sm3_integrity.o
+```
+
+**性能影响：**
+- LTO 通常可以带来 5-10% 的性能提升
+- 但在本项目中，由于符号冲突，必须禁用
+- 其他优化选项（`-O3`, `-funroll-loops` 等）已经提供了足够的性能
 
 ---
 

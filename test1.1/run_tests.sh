@@ -72,8 +72,8 @@ echo -e "${BLUE}  步骤1: 编译测试程序${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# 编译选项
-COMPILE_FLAGS="-march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize -finline-functions -ffast-math -flto -fomit-frame-pointer -pthread"
+# 编译选项（移除 -flto 避免 LTO 导致的 main 函数冲突）
+COMPILE_FLAGS="-march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize -finline-functions -ffast-math -fomit-frame-pointer -pthread"
 
 # 备选编译选项（如果不支持某些特性）
 FALLBACK_FLAGS="-march=armv8-a+crypto -O3 -funroll-loops -ftree-vectorize -finline-functions -pthread"
@@ -83,6 +83,12 @@ SIMPLE_FLAGS="-O3 -funroll-loops -ftree-vectorize -finline-functions -pthread"
 
 echo "编译测试程序..."
 echo "编译选项: $COMPILE_FLAGS"
+echo ""
+
+# 清理旧的编译文件（避免 LTO 残留）
+echo "清理旧的编译文件..."
+rm -f aes_sm3_integrity.o test_aes_sm3 *.o
+echo -e "${GREEN}✓${NC} 清理完成"
 echo ""
 
 # 尝试编译（分步编译以避免main函数冲突）

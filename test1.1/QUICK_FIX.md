@@ -2,13 +2,23 @@
 
 ## ❌ 错误：Multiple definition of `main`
 
-**完整错误信息：**
+**完整错误信息（两种形式）：**
+
+**形式1：常规错误**
 ```
 /usr/bin/ld: /tmp/ccXwBiBA.o: in function `main':
 test_aes_sm3_integrity.c:(.text.startup+0x0): multiple definition of `main'; 
 /tmp/ccD3A2Ts.o:aes_sm3_integrity.c:(.text.startup+0x0): first defined here
 collect2: error: ld returned 1 exit status
 ```
+
+**形式2：LTO（链接时优化）错误**
+```
+/usr/bin/ld: /tmp/ccjVMrOW.o (symbol from plugin): in function `print_hash':
+(.text+0x0): multiple definition of `main'; aes_sm3_integrity.o (symbol from plugin):(.text+0x0): first defined here
+collect2: error: ld returned 1 exit status
+```
+> 如果看到 `(symbol from plugin)` 字样，说明是 `-flto` 选项导致的。
 
 ---
 
@@ -81,19 +91,21 @@ test_aes_sm3.exe
 #### ARMv8 平台（完整优化）
 
 ```bash
-# 步骤1: 编译主算法文件
+# 步骤1: 编译主算法文件（不使用 -flto，避免 LTO 导致符号冲突）
 gcc -march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize \
-    -finline-functions -ffast-math -flto -fomit-frame-pointer -pthread \
+    -finline-functions -ffast-math -fomit-frame-pointer -pthread \
     -c aes_sm3_integrity.c -o aes_sm3_integrity.o
 
 # 步骤2: 编译测试文件并链接
 gcc -march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize \
-    -finline-functions -ffast-math -flto -fomit-frame-pointer -pthread \
+    -finline-functions -ffast-math -fomit-frame-pointer -pthread \
     -o test_aes_sm3 aes_sm3_integrity.o test_aes_sm3_integrity.c -lm
 
 # 步骤3: 运行测试
 ./test_aes_sm3
 ```
+
+> **注意：** 如果你在错误信息中看到 `(symbol from plugin)` 字样，说明是 `-flto`（链接时优化）导致的。移除 `-flto` 选项即可解决。
 
 ---
 
@@ -118,6 +130,7 @@ gcc -o test aes_sm3_integrity.o test_aes_sm3_integrity.c
 
 ## 🎯 为什么会出现这个错误？
 
+### 根本原因
 这个项目包含两个独立的程序：
 
 1. **`aes_sm3_integrity.c`** 
@@ -129,6 +142,13 @@ gcc -o test aes_sm3_integrity.o test_aes_sm3_integrity.c
    - 包含15个完整的测试用例
 
 当你同时编译这两个文件时，链接器发现了两个 `main` 函数，不知道应该使用哪个，因此报错。
+
+### LTO（链接时优化）问题
+如果你看到错误信息中有 `(symbol from plugin)` 字样，这是因为 `-flto` 选项在处理多个 `main` 函数时会产生额外的符号冲突。
+
+**解决方案：**
+1. 使用分步编译（`-c` 选项）
+2. 移除 `-flto` 选项（或在链接时不使用）
 
 ---
 

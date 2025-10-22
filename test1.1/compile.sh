@@ -19,9 +19,9 @@ fi
 echo "✓ GCC 版本: $(gcc --version | head -n1)"
 echo ""
 
-# 清理旧文件
+# 清理旧文件（重要：清理所有 .o 文件避免 LTO 残留）
 echo "清理旧的编译文件..."
-rm -f aes_sm3_integrity.o test_aes_sm3 test_aes_sm3.exe
+rm -f aes_sm3_integrity.o test_aes_sm3 test_aes_sm3.exe *.o
 echo "✓ 清理完成"
 echo ""
 
@@ -29,8 +29,8 @@ echo ""
 ARCH=$(uname -m)
 if [[ "$ARCH" =~ "aarch64" || "$ARCH" =~ "arm" ]]; then
     echo "检测到 ARM 平台，使用硬件加速优化"
-    # 尝试 ARMv8.2-A 优化
-    COMPILE_FLAGS="-march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize -finline-functions -ffast-math -flto -fomit-frame-pointer"
+    # 尝试 ARMv8.2-A 优化（不使用 -flto，避免 LTO 导致的符号冲突）
+    COMPILE_FLAGS="-march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize -finline-functions -ffast-math -fomit-frame-pointer"
     
     # 测试是否支持
     if ! gcc $COMPILE_FLAGS -c aes_sm3_integrity.c -o aes_sm3_integrity.o -lm 2>/dev/null; then
