@@ -56,16 +56,10 @@ chmod +x run_tests.sh
 #### 方法2：手动编译
 
 ```bash
-# 完整优化编译（ARMv8.2平台）- 分步编译避免main函数冲突
-# 步骤1: 编译主算法文件为目标文件（不使用 -flto，避免 LTO 符号冲突）
+# 完整优化编译（ARMv8.2平台）
 gcc -march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize \
-    -finline-functions -ffast-math -fomit-frame-pointer -pthread \
-    -c aes_sm3_integrity.c -o aes_sm3_integrity.o
-
-# 步骤2: 编译测试文件并链接
-gcc -march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize \
-    -finline-functions -ffast-math -fomit-frame-pointer -pthread \
-    -o test_aes_sm3 aes_sm3_integrity.o test_aes_sm3_integrity.c -lm
+    -finline-functions -ffast-math -flto -fomit-frame-pointer -pthread \
+    -o test_aes_sm3 aes_sm3_integrity.c test_aes_sm3_integrity.c -lm
 
 # 运行测试
 ./test_aes_sm3
@@ -77,16 +71,11 @@ gcc -march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize \
 # 基础ARMv8平台
 gcc -march=armv8-a+crypto -O3 -funroll-loops -ftree-vectorize \
     -finline-functions -pthread \
-    -c aes_sm3_integrity.c -o aes_sm3_integrity.o -lm
-gcc -march=armv8-a+crypto -O3 -funroll-loops -ftree-vectorize \
-    -finline-functions -pthread \
-    -o test_aes_sm3 aes_sm3_integrity.o test_aes_sm3_integrity.c -lm
+    -o test_aes_sm3 aes_sm3_integrity.c test_aes_sm3_integrity.c -lm
 
 # x86平台（仅功能测试，性能不佳）
 gcc -O3 -funroll-loops -ftree-vectorize -finline-functions -pthread \
-    -c aes_sm3_integrity.c -o aes_sm3_integrity.o -lm
-gcc -O3 -funroll-loops -ftree-vectorize -finline-functions -pthread \
-    -o test_aes_sm3 aes_sm3_integrity.o test_aes_sm3_integrity.c -lm
+    -o test_aes_sm3 aes_sm3_integrity.c test_aes_sm3_integrity.c -lm
 ```
 
 ### Windows平台

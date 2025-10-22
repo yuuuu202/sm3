@@ -72,62 +72,33 @@ echo -e "${BLUE}  步骤1: 编译测试程序${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# 编译选项（移除 -flto 避免 LTO 导致的 main 函数冲突）
-COMPILE_FLAGS="-march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize -finline-functions -ffast-math -fomit-frame-pointer -pthread"
+# 编译选项
+COMPILE_FLAGS="-march=armv8.2-a+crypto -O3 -funroll-loops -ftree-vectorize -finline-functions -ffast-math -flto -fomit-frame-pointer -pthread"
 
 # 备选编译选项（如果不支持某些特性）
 FALLBACK_FLAGS="-march=armv8-a+crypto -O3 -funroll-loops -ftree-vectorize -finline-functions -pthread"
 
-# 简化编译选项（最后的备选）
-SIMPLE_FLAGS="-O3 -funroll-loops -ftree-vectorize -finline-functions -pthread"
-
 echo "编译测试程序..."
 echo "编译选项: $COMPILE_FLAGS"
-echo ""
 
-# 清理旧的编译文件（避免 LTO 残留）
-echo "清理旧的编译文件..."
-rm -f aes_sm3_integrity.o test_aes_sm3 *.o
-echo -e "${GREEN}✓${NC} 清理完成"
-echo ""
-
-# 尝试编译（分步编译以避免main函数冲突）
-USED_FLAGS=""
-
-echo "步骤1: 编译主算法文件为目标文件..."
-if gcc $COMPILE_FLAGS -c aes_sm3_integrity.c -o aes_sm3_integrity.o 2>compile_error.log; then
-    echo -e "${GREEN}✓${NC} 主算法文件编译成功（ARMv8.2-A优化）"
-    USED_FLAGS="$COMPILE_FLAGS"
-    rm -f compile_error.log
-elif gcc $FALLBACK_FLAGS -c aes_sm3_integrity.c -o aes_sm3_integrity.o 2>compile_error.log; then
-    echo -e "${YELLOW}⚠${NC} ARMv8.2-A不支持，使用ARMv8-A编译成功"
-    USED_FLAGS="$FALLBACK_FLAGS"
-    rm -f compile_error.log
-elif gcc $SIMPLE_FLAGS -c aes_sm3_integrity.c -o aes_sm3_integrity.o 2>compile_error.log; then
-    echo -e "${YELLOW}⚠${NC} 使用通用编译选项成功（性能会降低）"
-    USED_FLAGS="$SIMPLE_FLAGS"
+# 尝试编译
+if gcc $COMPILE_FLAGS -o test_aes_sm3 aes_sm3_integrity_v2.3_opt.c test_aes_sm3_integrity.c -lm 2>compile_error.log; then
+    echo -e "${GREEN}✓${NC} 编译成功！"
     rm -f compile_error.log
 else
-    echo -e "${RED}✗${NC} 编译失败！"
-    echo ""
-    echo "错误信息:"
-    cat compile_error.log
-    rm -f compile_error.log
-    exit 1
-fi
-echo ""
-
-echo "步骤2: 编译测试文件并链接..."
-if gcc $USED_FLAGS -o test_aes_sm3 aes_sm3_integrity.o test_aes_sm3_integrity.c -lm 2>compile_error.log; then
-    echo -e "${GREEN}✓${NC} 测试程序链接成功！"
-    rm -f compile_error.log
-else
-    echo -e "${RED}✗${NC} 链接失败！"
-    echo ""
-    echo "错误信息:"
-    cat compile_error.log
-    rm -f compile_error.log
-    exit 1
+    echo -e "${YELLOW}⚠${NC} 使用默认编译选项失败，尝试备选方案..."
+    
+    if gcc $FALLBACK_FLAGS -o test_aes_sm3 aes_sm3_integrity_v2.3_opt.c test_aes_sm3_integrity.c -lm 2>compile_error.log; then
+        echo -e "${GREEN}✓${NC} 使用备选编译选项成功！"
+        rm -f compile_error.log
+    else
+        echo -e "${RED}✗${NC} 编译失败！"
+        echo ""
+        echo "错误信息:"
+        cat compile_error.log
+        rm -f compile_error.log
+        exit 1
+    fi
 fi
 
 echo ""
